@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 import { json } from 'body-parser';
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 (async () => {
     try {
@@ -14,6 +14,7 @@ const port = 3000;
                 mintAddress: String,
                 name: String,
                 symbol: String,
+                image: String,
                 additionalMetadata: [Object],
             });
 
@@ -21,13 +22,17 @@ const port = 3000;
 
             app.use(json());
 
-            app.post('/metadata', async (req, res) => {
-                const { mintAddress, name, symbol, additionalMetadata } = req.body;
+            app.get("/health" , (req , res) =>
+            {
+                return res.sendStatus(200);
+            })
 
-                const metadata = await Metadata.findOneAndUpdate(
-                    { mintAddress },
-                    { name, symbol, additionalMetadata },
-                    { upsert: true, new: true }
+            app.post('/metadata', async (req, res) => {
+                const { mintAddress, name, symbol, image ,additionalMetadata } = req.body;
+                  const metadata = await Metadata.findOneAndUpdate(
+                    { mintAddress }, 
+                    { name, symbol, image, additionalMetadata }, 
+                    { new: true, upsert: true } 
                 );
 
                 return res.status(200).json(metadata);
@@ -35,9 +40,17 @@ const port = 3000;
 
             app.get('/metadata/:mintAddress', async (req, res) => {
                 const { mintAddress } = req.params;
-                const metadata = await Metadata.findOne({ mintAddress });
+                const response = await Metadata.findOne({ mintAddress });
+              
 
-                if (metadata) {
+                if (response) {
+
+                      const metadata = {
+                        name : response.name,
+                        symbol : response.symbol,
+                        image : response.image
+                    }
+
                     res.json(metadata);
                 } else {
                     res.status(404).send('Metadata not found');
